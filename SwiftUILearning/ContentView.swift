@@ -1,8 +1,18 @@
 import SwiftUI
+import Combine // ← DODAJ OVO
+
+// MARK: - Orbit Manager (Shared State)
+class OrbitManager: ObservableObject {
+    @Published var isEnabled = false
+    
+    func toggle() {
+        isEnabled.toggle()
+    }
+}
 
 struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-   
+    @StateObject private var orbitManager = OrbitManager()
   
     var body: some View {
         Group {
@@ -13,9 +23,10 @@ struct ContentView: View {
             #elseif os(tvOS)
             tvOSView()
             #elseif os(visionOS)
-            visionOSView()  // ← DODAJ
+            visionOSView()
             #endif
         }
+        .environmentObject(orbitManager)
         .frame(
             minWidth: platformMinWidth(),
             maxWidth: platformMaxWidth(),
@@ -26,54 +37,54 @@ struct ContentView: View {
     
     // MARK: - Platform Views
     
+    #if os(macOS)
     private func macOSView() -> some View {
         NavigationSplitView {
             SidebarView()
         } detail: {
             DetailView()
-            
-        }
-    }
-    
-    private func iOSView() -> some View {
-        TabView {
-            ForEach(MenuItem.allCases) { item in  // ← MAKNI .filter
-                NavigationView {
-                    DetailView()
-                        .navigationTitle(item.title)
-                }
-                .tabItem {
-                    Label(item.title, systemImage: item.icon)
-                }
-                .tag(item)
-            }
-        }
-    }
-
-    private func tvOSView() -> some View {
-        TabView {
-            ForEach(MenuItem.allCases) { item in  // ← MAKNI .filter
-                NavigationView {
-                    DetailView()
-                        .navigationTitle(item.title)
-                }
-                .tabItem {
-                    VStack {
-                        Image(systemName: item.icon)
-                        Text(item.title)
+                .toolbar {
+                    ToolbarItemGroup(placement: .principal) {
+                        HStack(spacing: 20) {
+                            Button {
+                                // Camera 1
+                            } label: {
+                                Label("Camera 1", systemImage: "1.circle")
+                            }
+                            
+                            Button {
+                                // Camera 2
+                            } label: {
+                                Label("Camera 2", systemImage: "2.circle")
+                            }
+                            
+                            Button {
+                                // Camera 3
+                            } label: {
+                                Label("Camera 3", systemImage: "3.circle")
+                            }
+                        }
+                    }
+                    
+                    ToolbarItem(placement: .automatic) {
+                        OrbitControlButton()
                     }
                 }
-                .tag(item)
-            }
         }
     }
-
-    private func visionOSView() -> some View {
+    #endif
+    
+    #if os(iOS)
+    private func iOSView() -> some View {
         TabView {
-            ForEach(MenuItem.allCases) { item in  // ← MAKNI .filter
-                NavigationView {
+            ForEach(MenuItem.allCases.filter { !$0.isToggle }) { item in
+                NavigationStack {
                     DetailView()
-                        .navigationTitle(item.title)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                OrbitControlButton()
+                            }
+                        }
                 }
                 .tabItem {
                     Label(item.title, systemImage: item.icon)
@@ -82,6 +93,69 @@ struct ContentView: View {
             }
         }
     }
+    #endif
+
+    #if os(tvOS)
+    private func tvOSView() -> some View {
+        TabView {
+            ForEach(MenuItem.allCases.filter { !$0.isToggle }) { item in
+                NavigationStack {
+                    DetailView()
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                
+                            }
+                        }
+                }
+                .tabItem {
+                    Label(item.title, systemImage: item.icon)
+                }
+                .tag(item)
+            }
+        }
+    }
+    #endif
+
+#if os(visionOS)
+private func visionOSView() -> some View {
+    NavigationStack {
+        DetailView()
+            .toolbar {
+                ToolbarItemGroup(placement: .bottomOrnament) {
+                    HStack(spacing: 20) {
+                        Button {
+                            // Camera 1
+                        } label: {
+                            Label("Camera 1", systemImage: "1.circle")
+                                .labelStyle(.iconOnly)
+                        }
+                        
+                        Button {
+                            // Camera 2
+                        } label: {
+                            Label("Camera 2", systemImage: "2.circle")
+                                .labelStyle(.iconOnly)
+                        }
+                        
+                        Button {
+                            // Camera 3
+                        } label: {
+                            Label("Camera 3", systemImage: "3.circle")
+                                .labelStyle(.iconOnly)
+                        }
+                        
+                        Divider()
+                            .frame(height: 20)
+                        
+                        OrbitControlButton()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+            }
+    }
+}
+#endif
     
     // MARK: - Window Size Configuration
     
@@ -89,7 +163,7 @@ struct ContentView: View {
         #if os(macOS)
         return 800
         #else
-        return nil  // iOS, tvOS, visionOS - puni ekran
+        return nil
         #endif
     }
 
@@ -116,58 +190,56 @@ struct ContentView: View {
         return nil
         #endif
     }
-}  // ← ZATVORI ContentView OVDJE!
-
-// MARK: - Sidebar View (macOS)
-struct SidebarView: View {
-    @State private var toggleValue: Bool = false
-    
-    var body: some View {
-        List(MenuItem.allCases) { item in
-            if item.isToggle {
-                Toggle(item.title, isOn: $toggleValue)
-            } else {
-                NavigationLink {
-                    DetailView()
-                        .navigationTitle(item.title)
-                } label: {
-                    Label(item.title, systemImage: item.icon)
-                }
-            }
-        }
-        #if os(macOS)
-        .listStyle(SidebarListStyle())
-        .transaction { transaction in  transaction.animation = .spring()}
-        #endif
-        .navigationTitle("Menu")
-        .transaction { transaction in  transaction.animation = .bouncy()}
-    }
 }
 
 // MARK: - Detail View
 struct DetailView: View {
+    @EnvironmentObject private var orbitManager: OrbitManager
+    
     var body: some View {
-        VStack(spacing: 32) {
-            Image(systemName: "car.rear.fill")
-                .renderingMode(.original)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .foregroundStyle(.blue)
-                .frame(width: 96)
+        ZStack {
+            // Main content
+            VStack(spacing: 32) {
+                Image(systemName: "car.rear.fill")
+                    .renderingMode(.original)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .foregroundStyle(.blue)
+                    .frame(width: 96)
+                    .padding(.top, 64)
+                
+                Divider()
+                
+                Text("Hello, world!")
+                    .font(.title)
+                
+                Text("Orbit: \(orbitManager.isEnabled ? "ON" : "OFF")")
+                    .font(.subheadline)
+                    .foregroundColor(orbitManager.isEnabled ? .green : .red)
+                
+                Spacer()
+            }
+            .padding(64)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             
-            Divider()
-            
-            Text("Hello, world!")
-                .font(.title)
-            
-            Text("3 of something")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            Spacer()
         }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Orbit Control Button
+struct OrbitControlButton: View {
+    @EnvironmentObject private var orbitManager: OrbitManager
+    
+    var body: some View {
+        Button {
+            orbitManager.toggle()
+        }
+        label: {
+                Image(systemName: orbitManager.isEnabled ? "globe.desk.fill" : "globe.desk")
+                    .font(.title2)
+            .foregroundColor(orbitManager.isEnabled ? .blue : .primary)
+            .cornerRadius(12)
+        }
     }
 }
 

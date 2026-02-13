@@ -1,0 +1,59 @@
+# XcodeGen spec – generira SwiftUILearning.xcodeproj
+# Pokreni: xcodegen generate (ili xcodegen)
+# Dokumentacija: https://github.com/yonaskolb/XcodeGen
+
+name: SwiftUILearning
+options:
+  bundleIdPrefix: markofucek
+  deploymentTarget:
+    iOS: "26.1"
+    tvOS: "26.1"
+  developmentLanguage: en
+settings:
+  DEVELOPMENT_TEAM: 2GU736RWVH
+targets:
+  SwiftUILearning:
+    type: application
+    supportedDestinations: [iOS, tvOS]
+    deploymentTarget:
+      iOS: "26.1"
+      tvOS: "26.1"
+    sources:
+      - path: SwiftUILearning
+        type: group
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: markofucek.SwiftUILearning
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1,2,3"
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_PREVIEWS: YES
+        SWIFT_VERSION: "5.0"
+        SWIFT_EMIT_LOC_STRINGS: YES
+        GENERATE_INFOPLIST_FILE: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        LD_RUNPATH_SEARCH_PATHS: "@executable_path/Frameworks"
+        SUPPORTS_MACCATALYST: NO
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]: YES
+schemes:
+  SwiftUILearning-iOS:
+    build:
+      targets:
+        SwiftUILearning: all
+    run:
+      config: Debug
+      executable: SwiftUILearning
+  SwiftUILearning-tvOS:
+    build:
+      targets:
+        SwiftUILearning: all
+    run:
+      config: Debug
+      executable: SwiftUILearning

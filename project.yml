@@ -42,6 +42,7 @@ targets:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]: YES
         INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]: YES
         INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]: YES
+        INFOPLIST_KEY_GCSupportsControllerUserInteraction: YES
 schemes:
   SwiftUILearning-iOS:
     build:

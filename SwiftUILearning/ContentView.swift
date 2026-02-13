@@ -1,13 +1,13 @@
 import SwiftUI
-import Combine
+#if os(tvOS)
+import UIKit
+#endif
 
 // MARK: - Orbit Manager (Shared State)
-// ObservableObject: shared state that multiple views read/update. Use @StateObject where the view owns it, @EnvironmentObject where it’s injected.
-// - isEnabled: orbit mod uključen/isključen (npr. Play/Pause na Siri Remoteu).
-// - zoomLevel: -3...0...3; 0 = default. zoomIn()/zoomOut() iz dpad.up/down (samo kad nije swipe).
-class OrbitManager: ObservableObject {
-    @Published var isEnabled = false
-    @Published var zoomLevel: Int = 0  // -3...0...3, 0 = default
+@Observable
+class OrbitManager {
+    var isEnabled = false
+    var zoomLevel: Int = 0
 
     func toggle() {
         isEnabled.toggle()
@@ -39,11 +39,9 @@ class OrbitManager: ObservableObject {
 }
 
 // MARK: - Content View (Root)
-// Picks the right root UI per platform: iOS (iPhone/iPad) or tvOS (Apple TV).
 struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    // StateObject: this view owns OrbitManager; SwiftUI creates it once and keeps it across body updates.
-    @StateObject private var orbitManager = OrbitManager()
+    @State private var orbitManager = OrbitManager()
 
     var body: some View {
         Group {
@@ -53,42 +51,34 @@ struct ContentView: View {
             tvOSView()
             #endif
         }
-        .environmentObject(orbitManager)
+        .environment(orbitManager)
         .onAppear { logPlatform() }
     }
 
     private func logPlatform() {
         #if os(iOS)
         switch UIDevice.current.userInterfaceIdiom {
-        case .phone:
-            print("[Platform] iOS – iPhone")
-        case .pad:
-            print("[Platform] iOS – iPad")
-        default:
-            print("[Platform] iOS – other")
+        case .phone: print("[Platform] iOS – iPhone")
+        case .pad:   print("[Platform] iOS – iPad")
+        default:     print("[Platform] iOS – other")
         }
         #elseif os(tvOS)
         print("[Platform] tvOS")
         #endif
     }
 
-    // MARK: - Platform root views
-
     #if os(iOS)
-    // iOS: Tab-based navigation; each tab has its own NavigationStack and shows DetailView.
     private func iOSView() -> some View {
         TabView {
             ForEach(MenuItem.allCases.filter { !$0.isToggle }) { item in
                 NavigationStack {
                     DetailView()
-                        // ——— Top nav (toolbar) ———
                         .toolbar {
                             ToolbarItem(placement: .topBarTrailing) {
                                 OrbitControlButton()
                             }
                         }
                 }
-                // ——— Bottom nav (tab bar) ———
                 .tabItem {
                     Label(item.title, systemImage: item.icon)
                 }
@@ -105,14 +95,12 @@ struct ContentView: View {
     #endif
 }
 
-// MARK: - Detail View
-// Shared content view used on iOS (and previously other platforms). Reads OrbitManager from environment.
+// MARK: - Detail View (iOS)
 struct DetailView: View {
-    @EnvironmentObject private var orbitManager: OrbitManager
+    @Environment(OrbitManager.self) private var orbitManager
 
     var body: some View {
         ZStack {
-            // ——— Main content ———
             VStack(spacing: 32) {
                 Image(systemName: "car.rear.fill")
                     .renderingMode(.original)
@@ -129,7 +117,7 @@ struct DetailView: View {
 
                 Text("Orbit: \(orbitManager.isEnabled ? "ON" : "OFF")")
                     .font(.subheadline)
-                    .foregroundColor(orbitManager.isEnabled ? .green : .red)
+                    .foregroundStyle(orbitManager.isEnabled ? .green : .red)
 
                 Spacer()
             }
@@ -139,10 +127,9 @@ struct DetailView: View {
     }
 }
 
-// MARK: - Orbit Control Button
-// Button that toggles OrbitManager; used in toolbars. EnvironmentObject gives access to shared OrbitManager.
+// MARK: - Orbit Control Button (iOS)
 struct OrbitControlButton: View {
-    @EnvironmentObject private var orbitManager: OrbitManager
+    @Environment(OrbitManager.self) private var orbitManager
 
     var body: some View {
         Button {
@@ -150,13 +137,12 @@ struct OrbitControlButton: View {
         } label: {
             Image(systemName: orbitManager.isEnabled ? "globe.desk.fill" : "globe.desk")
                 .font(.title2)
-                .foregroundColor(orbitManager.isEnabled ? .blue : .primary)
-                .cornerRadius(12)
+                .foregroundStyle(orbitManager.isEnabled ? .blue : .primary)
         }
     }
 }
 
-// MARK: - Menu Item Model (iOS only – tab bar items)
+// MARK: - Menu Item Model (iOS only)
 #if os(iOS)
 enum MenuItem: String, CaseIterable, Identifiable {
     case button1 = "Button 1"
@@ -192,7 +178,6 @@ struct ConfigurationOption: Identifiable {
     let choices: [String]
 }
 
-// Camera/view options for the top bar: named views (text only, no icons).
 enum CameraView: String, CaseIterable, Identifiable {
     case front = "Front"
     case side = "Side"
@@ -203,57 +188,64 @@ enum CameraView: String, CaseIterable, Identifiable {
     var title: String { rawValue }
 }
 
-// Shared config state for the tvOS configurator: camera, side menu, and bottom card selections.
-class TVOSConfigurationManager: ObservableObject {
-    @Published var selectedCamera: CameraView = .front
-    @Published var selectedLeftOption: Int = 1
-    @Published var configurations: [ConfigurationOption] = [
+@Observable
+class TVOSConfigurationManager {
+    var selectedCamera: CameraView = .front
+    var selectedLeftOption: Int = 1
+    var configurations: [ConfigurationOption] = [
         ConfigurationOption(title: "Hull Color", choices: ["White", "Blue", "Red", "Black"]),
         ConfigurationOption(title: "Deck Style", choices: ["Classic", "Sport", "Luxury"]),
-        ConfigurationOption(title: "Engine", choices: ["Standard", "Performance", "Eco"])
+        ConfigurationOption(title: "Engine", choices: ["Standard", "Performance", "Eco"]),
+        ConfigurationOption(title: "Interior", choices: ["Leather", "Fabric", "Wood"]),
+        ConfigurationOption(title: "Electronics", choices: ["Basic", "Advanced", "Premium"])
     ]
-    @Published var selectedChoices: [UUID: String] = [:]
-    @Published var activeBottomMenu: UUID? = nil
+    var selectedChoices: [UUID: String] = [:]
+    var activeBottomMenu: UUID? = nil
 }
 
-// Root tvOS view: top bar, left menu, center boat, bottom config cards.
-// ignoresSafeArea + uniform padding so margins are equal on all 4 sides (tvOS safe area is asymmetric).
+// MARK: - Root tvOS View
 struct TVOSBoatConfiguratorView: View {
-    @StateObject private var configManager = TVOSConfigurationManager()
-    @StateObject private var touchPanel = TouchPanelObserver()
-    @EnvironmentObject private var orbitManager: OrbitManager
+    @State private var configManager = TVOSConfigurationManager()
+    @State private var touchPanel = TouchPanelObserver()
+    @Environment(OrbitManager.self) private var orbitManager
     @FocusState private var focusedConfigCard: UUID?
 
     private let screenMargin: CGFloat = 32
 
     var body: some View {
         ZStack {
+            // Layer 0: Boat display
+            BoatDisplayView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .environment(touchPanel)
+                .focusable(false)
+
+            // Layer 1: UI overlay
             VStack(spacing: 0) {
-                // ——— Top nav ———
                 TopBarView(selectedCamera: $configManager.selectedCamera)
+                    .focusSection()
 
                 HStack(spacing: 0) {
-                    // ——— Side nav ———
                     LeftSideMenu(selectedOption: $configManager.selectedLeftOption)
                         .frame(width: 200)
-
-                    // ——— Main content ———
-                    BoatDisplayView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .environmentObject(touchPanel)
+                        .focusSection()
+                    Spacer()
                 }
+                .frame(maxHeight: .infinity)
 
-                // ——— Bottom nav (maknuto kad je Orbit aktivan) ———
                 if !orbitManager.isEnabled {
-                    BottomConfigurationCards(configManager: configManager, focusedCard: $focusedConfigCard)
-                        .padding(.horizontal, 24)
+                    BottomConfigurationCards(
+                        configManager: configManager,
+                        focusedCard: $focusedConfigCard
+                    )
+                    .focusSection()
+                    .padding(.horizontal, 24)
                 }
             }
             .animation(.easeInOut(duration: 0.25), value: orbitManager.isEnabled)
             .padding(screenMargin)
-            .overlay(RoundedRectangle(cornerRadius: 0).stroke(Color.red, lineWidth: 1))
 
-            // Overlay when a bottom card is active
+            // Layer 2: Selection overlay
             if let activeMenuId = configManager.activeBottomMenu,
                let option = configManager.configurations.first(where: { $0.id == activeMenuId }) {
                 SelectionMenuOverlay(
@@ -263,12 +255,16 @@ struct TVOSBoatConfiguratorView: View {
                         set: { configManager.selectedChoices[activeMenuId] = $0 }
                     ),
                     onDismiss: {
-                        let cardId = activeMenuId
-                        focusedConfigCard = cardId
+                        focusedConfigCard = activeMenuId
                         configManager.activeBottomMenu = nil
                     }
                 )
             }
+        }
+        .onPlayPauseCommand {
+            // SwiftUI native — ovo UVIJEK radi za play/pause
+            print("[SwiftUI] onPlayPauseCommand")
+            orbitManager.toggle()
         }
         .onAppear {
             touchPanel.onPlayPause = { orbitManager.toggle() }
@@ -279,14 +275,14 @@ struct TVOSBoatConfiguratorView: View {
             if isOn { configManager.activeBottomMenu = nil }
         }
         .ignoresSafeArea()
-        .environmentObject(configManager)
+        .environment(configManager)
     }
 }
 
-// Top bar (tvOS): Front/Side/Rear/Interior. Kad je Orbit aktivan, segment se uklanja iz layouta.
+// MARK: - Top Bar
 struct TopBarView: View {
     @Binding var selectedCamera: CameraView
-    @EnvironmentObject private var orbitManager: OrbitManager
+    @Environment(OrbitManager.self) private var orbitManager
 
     var body: some View {
         HStack(spacing: 0) {
@@ -298,11 +294,11 @@ struct TopBarView: View {
                             selectedCamera = view
                         } label: {
                             Text(view.title)
-                                .font(.title3)
+                                .font(.system(size: 16, weight: .medium))
                                 .padding(.horizontal, 24)
                                 .padding(.vertical, 15)
                                 .background(selectedCamera == view ? Color.accentColor.opacity(0.3) : Color.clear)
-                                .cornerRadius(10)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
                         }
                         .buttonStyle(.card)
                     }
@@ -314,14 +310,14 @@ struct TopBarView: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 24)
         .animation(.easeInOut(duration: 0.25), value: orbitManager.isEnabled)
-        .focusSection()
     }
 }
 
-// Left side menu (tvOS): View 1, View 2, Orbit. Kad je Orbit aktivan, ostaje samo gumb Orbit.
+// MARK: - Left Side Menu
 struct LeftSideMenu: View {
     @Binding var selectedOption: Int
-    @EnvironmentObject private var orbitManager: OrbitManager
+    @Environment(OrbitManager.self) private var orbitManager
+    @FocusState private var focusedButton: Int?
 
     private let menuOptions = [
         (title: "View 1", icon: "viewfinder"),
@@ -329,47 +325,70 @@ struct LeftSideMenu: View {
         (title: "Orbit", icon: "globe.desk")
     ]
 
-    private var visibleOptions: [Int] {
-        orbitManager.isEnabled ? [3] : [1, 2, 3]
-    }
-
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
 
-            ForEach(visibleOptions, id: \.self) { option in
-                Button {
-                    selectedOption = option
-                    if option == 3 {
-                        orbitManager.toggle()
+            // Buttons 1 & 2 — hidden while orbit is active
+            if !orbitManager.isEnabled {
+                ForEach([1, 2], id: \.self) { option in
+                    Button {
+                        selectedOption = option
+                    } label: {
+                        VStack(spacing: 0) {
+                            Image(systemName: menuOptions[option - 1].icon)
+                                .font(.system(size: 24))
+                            Text(menuOptions[option - 1].title)
+                                .font(.caption)
+                        }
+                        .foregroundStyle(selectedOption == option ? Color.white : Color.gray)
+                        .frame(width: 160, height: 120)
+                        .background(selectedOption == option ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2))
+                        .clipShape(RoundedRectangle(cornerRadius: 15))
                     }
-                } label: {
-                    VStack(spacing: 0) {
-                        Image(systemName: menuOptions[option - 1].icon)
-                            .font(.title2)
-                        Text(menuOptions[option - 1].title)
-                            .font(.caption)
-                    }
-                    .frame(width: 160, height: 120)
-                    .background(selectedOption == option ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2))
-                    .cornerRadius(15)
+                    .buttonStyle(.card)
+                    .focused($focusedButton, equals: option)
+                    .transition(.opacity)
                 }
-                .buttonStyle(.card)
-                .transition(.opacity)
             }
+
+            // Orbit button — never focusable while orbit is active
+            Button {
+                selectedOption = 3
+                orbitManager.toggle()
+            } label: {
+                VStack(spacing: 0) {
+                    Image(systemName: menuOptions[2].icon)
+                        .font(.system(size: 24))
+                    Text(menuOptions[2].title)
+                        .font(.caption)
+                }
+                .foregroundStyle(orbitManager.isEnabled ? Color.white : (selectedOption == 3 ? Color.white : Color.gray))
+                .frame(width: 160, height: 120)
+                .background(orbitManager.isEnabled ? Color.accentColor.opacity(0.8) : (selectedOption == 3 ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2)))
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+            }
+            .buttonStyle(.card)
+            .focused($focusedButton, equals: 3)
+            .focusable(!orbitManager.isEnabled)
 
             Spacer()
         }
+        .defaultFocus($focusedButton, 1)
         .animation(.easeInOut(duration: 0.25), value: orbitManager.isEnabled)
-        .focusSection()
+        .onChange(of: orbitManager.isEnabled) { _, isOn in
+            // Orbit ON  → clear focus entirely so no card glows
+            // Orbit OFF → restore focus to button 1
+            focusedButton = isOn ? nil : 1
+        }
     }
 }
 
-// Center boat display (tvOS): camera/orbit state. Kad je Orbit ON, ispisuje touch (x,y) i zoom razinu (dpad up/down).
+// MARK: - Boat Display
 struct BoatDisplayView: View {
-    @EnvironmentObject private var orbitManager: OrbitManager
-    @EnvironmentObject private var configManager: TVOSConfigurationManager
-    @EnvironmentObject private var touchPanel: TouchPanelObserver
+    @Environment(OrbitManager.self) private var orbitManager
+    @Environment(TVOSConfigurationManager.self) private var configManager
+    @Environment(TouchPanelObserver.self) private var touchPanel
 
     private var zoomLabel: String {
         if orbitManager.zoomLevel > 0 {
@@ -388,26 +407,26 @@ struct BoatDisplayView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(height: 300)
-                    .foregroundColor(.blue)
+                    .foregroundStyle(.blue)
 
                 Text("View: \(configManager.selectedCamera.title)")
                     .font(.headline)
 
                 Text("Orbit: \(orbitManager.isEnabled ? "ON" : "OFF")")
                     .font(.subheadline)
-                    .foregroundColor(orbitManager.isEnabled ? .green : .secondary)
+                    .foregroundStyle(orbitManager.isEnabled ? .green : .secondary)
 
                 if orbitManager.isEnabled {
                     VStack(spacing: 8) {
                         Text("Touch panel (remote)")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Text("x: \(touchPanel.x, specifier: "%.3f")  y: \(touchPanel.y, specifier: "%.3f")")
                             .font(.system(.body, design: .monospaced))
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                         Text(zoomLabel)
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                     }
                     .padding()
                 }
@@ -416,9 +435,9 @@ struct BoatDisplayView: View {
     }
 }
 
-// Bottom config cards (tvOS): tapping opens SelectionMenuOverlay. focusedCard restores focus to the card when overlay dismisses.
+// MARK: - Bottom Configuration Cards
 struct BottomConfigurationCards: View {
-    @ObservedObject var configManager: TVOSConfigurationManager
+    var configManager: TVOSConfigurationManager
     var focusedCard: FocusState<UUID?>.Binding
 
     var body: some View {
@@ -440,11 +459,13 @@ struct BottomConfigurationCards: View {
                 }
             }
         }
-        .frame(height: 180)
+        .frame(maxWidth: .infinity)
+        .frame(height: 96)
+        .defaultFocus(focusedCard, configManager.configurations.first?.id)
     }
 }
 
-// Single config card (tvOS): shows option title and current choice. focusedCard restores focus here when overlay dismisses.
+// MARK: - Configuration Card
 struct ConfigurationCard: View {
     let option: ConfigurationOption
     let selectedChoice: String
@@ -456,16 +477,16 @@ struct ConfigurationCard: View {
         Button(action: onTap) {
             VStack(spacing: 0) {
                 Text(option.title)
-                    .font(.headline)
+                    .font(.system(size: 24, weight: .medium))
 
                 Text(selectedChoice)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 180)
+            .frame(height: 96)
             .background(isActive ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.15))
-            .cornerRadius(20)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
                     .stroke(isActive ? Color.accentColor : Color.clear, lineWidth: 3)
@@ -476,7 +497,7 @@ struct ConfigurationCard: View {
     }
 }
 
-// Full-screen overlay for picking a choice; @FocusState drives focus for remote. Dismiss by selecting or tapping background.
+// MARK: - Selection Menu Overlay
 struct SelectionMenuOverlay: View {
     let option: ConfigurationOption
     @Binding var selectedChoice: String
@@ -491,12 +512,13 @@ struct SelectionMenuOverlay: View {
                     onDismiss()
                 }
 
-            VStack(spacing: 0) {
+            VStack(spacing: 24) {
                 Text("Select \(option.title)")
-                    .font(.title2)
+                    .font(.system(size: 24, weight: .medium))
                     .fontWeight(.bold)
+                    .padding(.bottom, 8)
 
-                VStack(spacing: 0) {
+                VStack(spacing: 12) {
                     ForEach(option.choices, id: \.self) { choice in
                         Button {
                             selectedChoice = choice
@@ -504,29 +526,30 @@ struct SelectionMenuOverlay: View {
                         } label: {
                             HStack {
                                 Text(choice)
-                                    .font(.title3)
+                                    .font(.system(size: 16, weight: .medium))
                                 Spacer()
                                 if choice == selectedChoice {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
+                                        .foregroundStyle(.green)
                                 }
                             }
-                            .padding(.horizontal, 0)
-                            .padding(.vertical, 0)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 16)
                             .frame(width: 500)
                             .background(choice == selectedChoice ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2))
-                            .cornerRadius(15)
+                            .clipShape(RoundedRectangle(cornerRadius: 15))
                         }
                         .buttonStyle(.card)
                         .focused($focusedChoice, equals: choice)
                     }
                 }
             }
-            .padding(0)
+            .padding(32)
             .background(Color(white: 0.15))
-            .cornerRadius(30)
+            .clipShape(RoundedRectangle(cornerRadius: 30))
             .shadow(radius: 20)
         }
+        .focusSection()
         .onAppear {
             focusedChoice = selectedChoice
         }

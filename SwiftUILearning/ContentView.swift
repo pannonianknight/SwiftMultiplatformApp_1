@@ -407,39 +407,52 @@ struct RightSideMenu: View {
 struct SideMenuButton: View {
     let isActive: Bool
     let icon: String
-    var isOrbit: Bool = false      // Deprecated/Unused parameter, kept for compatibility if needed but logic removed
+    var isOrbit: Bool = false      // Deprecated/Unused parameter
     var orbitEnabled: Bool = false // Deprecated/Unused parameter
     let action: () -> Void
-    
-    @Environment(\.isFocused) private var isFocused
+
+    @FocusState private var isFocused: Bool
+
+    private var iconColor: Color {
+        isActive ? .white : Color.white.opacity(0.6)
+    }
+
+    private var fillColor: Color {
+        isActive ? Color.white.opacity(0.15) : Color.white.opacity(0.08)
+    }
+
+    private var strokeColor: Color {
+        isFocused ? Color.white.opacity(0.6) : Color.white.opacity(0.15)
+    }
+
+    private var strokeWidth: CGFloat {
+        isFocused ? 2 : 1
+    }
+
+    private var scale: CGFloat {
+        isFocused ? 1.15 : 1.0
+    }
+
+    private var shadowColor: Color {
+        isFocused ? Color.white.opacity(0.3) : .clear
+    }
 
     var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 28, weight: .medium))
-                .foregroundStyle(isActive ? Color.white : Color.white.opacity(0.6))
-                .frame(width: 80, height: 80)
-                .background(
-                    Circle()
-                        .fill(isActive ? Color.white.opacity(0.15) : Color.white.opacity(0.08))
-                )
-                .background(
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                )
-                .clipShape(Circle())
-                .overlay(
-                    Circle()
-                        .stroke(
-                            isFocused ? Color.white.opacity(0.6) : Color.white.opacity(0.15),
-                            lineWidth: isFocused ? 2 : 1
-                        )
-                )
-                .scaleEffect(isFocused ? 1.15 : 1.0)
-                .shadow(color: isFocused ? Color.white.opacity(0.3) : Color.clear, radius: 12)
-                .animation(.easeInOut(duration: 0.2), value: isFocused)
-        }
-        .buttonStyle(.plain)
+        Image(systemName: icon)
+            .font(.system(size: 28, weight: .medium))
+            .foregroundStyle(iconColor)
+            .frame(width: 80, height: 80)
+            .background(Circle().fill(fillColor))
+            .background(Circle().fill(.ultraThinMaterial))
+            .clipShape(Circle())
+            .overlay(Circle().stroke(strokeColor, lineWidth: strokeWidth))
+            .scaleEffect(scale)
+            .shadow(color: shadowColor, radius: 12)
+            .animation(.easeInOut(duration: 0.2), value: isFocused)
+            .focusable(true)
+            .focused($isFocused)
+            .onTapGesture { action() }
+//            .digitalCrownRotation(.constant(0.0)) // keeps it focusable on tvOS
     }
 }
 

@@ -15,7 +15,7 @@ import GameController
 final class TouchPanelObserver {
     var x: Float = 0
     var y: Float = 0
-    var onPlayPause: (() -> Void)?
+    // onPlayPause removed - handled by SwiftUI .onPlayPauseCommand
     var onZoomIn: (() -> Void)?
     var onZoomOut: (() -> Void)?
     var onClicked: (() -> Void)?
@@ -80,13 +80,8 @@ final class TouchPanelObserver {
             print("[Remote] buttonA pressed")
             DispatchQueue.main.async { self?.onClicked?() }
         }
-
-        // Play/Pause
-        pad.buttonX.pressedChangedHandler = { [weak self] _, _, pressed in
-            guard pressed else { return }
-            print("[Remote] buttonX (play/pause) pressed")
-            DispatchQueue.main.async { self?.onPlayPause?() }
-        }
+        
+        // Play/Pause removed - handled by SwiftUI
     }
     
     private func setupMicro(_ pad: GCMicroGamepad) {
@@ -105,11 +100,7 @@ final class TouchPanelObserver {
                 else if y < -0.3 { self.onZoomOut?() }
             }
         }
-        pad.valueChangedHandler = { [weak self] micro, element in
-            guard element === micro.buttonX, micro.buttonX.value > 0.5 else { return }
-            print("[Remote] micro buttonX pressed")
-            DispatchQueue.main.async { self?.onPlayPause?() }
-        }
+        // Play/Pause removed - handled by SwiftUI
     }
 }
 

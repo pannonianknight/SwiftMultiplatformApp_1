@@ -10,6 +10,8 @@
 		4332B87FB5ECD2EB4420E936 /* SwiftUILearningApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E26603E9BDC287919CE220BF /* SwiftUILearningApp.swift */; };
 		6CC537E8F22E9E419700AC36 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 517C66A6AE3D34527217AB28 /* Assets.xcassets */; };
 		73CFEAA30FB3C6EC00017AB6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99CD56E74C0061D7AE535A70 /* ContentView.swift */; };
+		AD1C91F32F3FC40F00773BA2 /* NavalLogoX2.png in Resources */ = {isa = PBXBuildFile; fileRef = AD1C91F22F3FC40F00773BA2 /* NavalLogoX2.png */; };
+		AD1C91F42F3FC40F00773BA2 /* NavalLogoX1.png in Resources */ = {isa = PBXBuildFile; fileRef = AD1C91F12F3FC40F00773BA2 /* NavalLogoX1.png */; };
 		E3049B0040D7A2EF04C0A5DE /* SiriRemoteObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60BE41DACD006FA3BABAF089 /* SiriRemoteObserver.swift */; };
 /* End PBXBuildFile section */
 
@@ -17,6 +19,8 @@
 		517C66A6AE3D34527217AB28 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		60BE41DACD006FA3BABAF089 /* SiriRemoteObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiriRemoteObserver.swift; sourceTree = "<group>"; };
 		99CD56E74C0061D7AE535A70 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AD1C91F12F3FC40F00773BA2 /* NavalLogoX1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = NavalLogoX1.png; sourceTree = "<group>"; };
+		AD1C91F22F3FC40F00773BA2 /* NavalLogoX2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = NavalLogoX2.png; sourceTree = "<group>"; };
 		CE2AD1DB1C9932D9A23C5425 /* SwiftUILearning.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftUILearning.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E26603E9BDC287919CE220BF /* SwiftUILearningApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUILearningApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -25,6 +29,8 @@
 		091B17981B197DFA50D03BD6 /* SwiftUILearning */ = {
 			isa = PBXGroup;
 			children = (
+				AD1C91F12F3FC40F00773BA2 /* NavalLogoX1.png */,
+				AD1C91F22F3FC40F00773BA2 /* NavalLogoX2.png */,
 				517C66A6AE3D34527217AB28 /* Assets.xcassets */,
 				99CD56E74C0061D7AE535A70 /* ContentView.swift */,
 				60BE41DACD006FA3BABAF089 /* SiriRemoteObserver.swift */,
@@ -109,6 +115,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				6CC537E8F22E9E419700AC36 /* Assets.xcassets in Resources */,
+				AD1C91F32F3FC40F00773BA2 /* NavalLogoX2.png in Resources */,
+				AD1C91F42F3FC40F00773BA2 /* NavalLogoX1.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -139,11 +147,11 @@
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_GCSupportsControllerUserInteraction = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-				INFOPLIST_KEY_GCSupportsControllerUserInteraction = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
@@ -300,11 +308,11 @@
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_GCSupportsControllerUserInteraction = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-				INFOPLIST_KEY_GCSupportsControllerUserInteraction = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";

@@ -217,7 +217,9 @@ struct TVOSBoatConfiguratorView: View {
     @State private var configManager = TVOSConfigurationManager()
     @State private var touchPanel = TouchPanelObserver()
     @Environment(OrbitManager.self) private var orbitManager
+    @State private var isMenuOpen = false
     @FocusState private var focusedConfigCard: UUID?
+    @FocusState private var isOrbitFocused: Bool
 
     private let screenMargin: CGFloat = 32
 
@@ -227,23 +229,30 @@ struct TVOSBoatConfiguratorView: View {
             BoatDisplayView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .environment(touchPanel)
-                .focusable(false)
+                .focusable(orbitManager.isEnabled)
+                .focused($isOrbitFocused)
 
             // Layer 1: Sidebars (Always visible, fixed position)
             HStack(spacing: 0) {
                 LeftSideMenu(selectedOption: $configManager.selectedLeftOption)
-                    .frame(width: 200)
+                    .frame(width: 96)
+//                    .border(.blue, width: 1)
                     .focusSection()
                 Spacer()
                 RightSideMenu()
-                    .frame(width: 200)
+                    .frame(width: 96)
+//                    .border(.yellow, width: 1)
             }
             .frame(maxHeight: .infinity)
             .padding(screenMargin)
 
             // Layer 2: Top & Bottom Bars (Dynamic visibility)
             VStack(spacing: 0) {
-                TopBarView(selectedCamera: $configManager.selectedCamera)
+                TopBarView(
+                    selectedCamera: $configManager.selectedCamera,
+                    onMenuTap: { isMenuOpen = true }
+                )
+//                    .border(.green, width: 1)
                     .focusSection()
                 
                 Spacer()
@@ -253,8 +262,9 @@ struct TVOSBoatConfiguratorView: View {
                         configManager: configManager,
                         focusedCard: $focusedConfigCard
                     )
+//                    .border(.red, width: 1)
                     .focusSection()
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 64)
                 }
             }
             .animation(.easeInOut(duration: 0.25), value: orbitManager.isEnabled)
@@ -271,9 +281,12 @@ struct TVOSBoatConfiguratorView: View {
                     ),
                     onDismiss: {
                         focusedConfigCard = activeMenuId
-                        configManager.activeBottomMenu = nil
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            configManager.activeBottomMenu = nil
+                        }
                     }
                 )
+                .transition(.opacity)
             }
         }
         .onPlayPauseCommand {
@@ -282,12 +295,19 @@ struct TVOSBoatConfiguratorView: View {
             orbitManager.toggle()
         }
         .onAppear {
-            touchPanel.onPlayPause = { orbitManager.toggle() }
             touchPanel.onZoomIn = { orbitManager.zoomIn() }
             touchPanel.onZoomOut = { orbitManager.zoomOut() }
         }
         .onChange(of: orbitManager.isEnabled) { _, isOn in
-            if isOn { configManager.activeBottomMenu = nil }
+            if isOn {
+                configManager.activeBottomMenu = nil
+                isOrbitFocused = true
+            } else {
+                // Wait for the animation to finish before requesting focus
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    focusedConfigCard = configManager.configurations.first?.id
+                }
+            }
         }
         .ignoresSafeArea()
         .environment(configManager)
@@ -298,10 +318,20 @@ struct TVOSBoatConfiguratorView: View {
 struct TopBarView: View {
     @Binding var selectedCamera: CameraView
     @Environment(OrbitManager.self) private var orbitManager
+    var onMenuTap: () -> Void
 
     var body: some View {
         HStack(spacing: 0) {
-            Spacer(minLength: 0)
+            // Logo — lijevo
+            Image("NavalLogo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(height: 48)
+                .focusable(false)
+
+            Spacer()
+
+            // Kamere — centar
             if !orbitManager.isEnabled {
                 HStack(spacing: 24) {
                     ForEach(CameraView.allCases) { view in
@@ -312,7 +342,8 @@ struct TopBarView: View {
                                 .font(.system(size: 16, weight: .medium))
                                 .padding(.horizontal, 24)
                                 .padding(.vertical, 15)
-                                .background(selectedCamera == view ? Color.accentColor.opacity(0.3) : Color.clear)
+                                .background(selectedCamera == view ? Color.accentColor.opacity(0.3) : Color.black.opacity(0.2))
+                                .background(.ultraThinMaterial)
                                 .clipShape(RoundedRectangle(cornerRadius: 10))
                         }
                         .buttonStyle(.card)
@@ -320,13 +351,29 @@ struct TopBarView: View {
                 }
                 .transition(.opacity)
             }
-            Spacer(minLength: 0)
+
+            Spacer()
+
+            // Menu — desno
+            if !orbitManager.isEnabled {
+                Button(action: onMenuTap) {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 48, height: 48) // Match visible height of text buttons approx
+                        .background(Color.black.opacity(0.2))
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                }
+                .buttonStyle(.card)
+                .transition(.opacity)
+            }
         }
-        .frame(maxWidth: .infinity)
         .padding(.horizontal, 24)
         .animation(.easeInOut(duration: 0.25), value: orbitManager.isEnabled)
     }
 }
+
 
 // MARK: - Left Side Menu
 struct LeftSideMenu: View {
@@ -607,7 +654,7 @@ struct SelectionMenuOverlay: View {
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 16)
-                            .frame(width: 500)
+                            .frame(width: 384)
                             .background(choice == selectedChoice ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2))
                             .clipShape(RoundedRectangle(cornerRadius: 15))
                         }

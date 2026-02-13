@@ -9,7 +9,16 @@ class OrbitManager {
     var isEnabled = false
     var zoomLevel: Int = 0
 
+    private var lastToggleTime: Date = .distantPast
+
     func toggle() {
+        let now = Date()
+        guard now.timeIntervalSince(lastToggleTime) > 0.5 else {
+            print("[Orbit] toggle ignored (debounce)")
+            return
+        }
+        lastToggleTime = now
+        
         isEnabled.toggle()
         if !isEnabled { zoomLevel = 0 }
         print("[Orbit] toggled: \(isEnabled ? "ON" : "OFF")")

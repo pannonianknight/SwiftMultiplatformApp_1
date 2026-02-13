@@ -229,18 +229,24 @@ struct TVOSBoatConfiguratorView: View {
                 .environment(touchPanel)
                 .focusable(false)
 
-            // Layer 1: UI overlay
+            // Layer 1: Sidebars (Always visible, fixed position)
+            HStack(spacing: 0) {
+                LeftSideMenu(selectedOption: $configManager.selectedLeftOption)
+                    .frame(width: 200)
+                    .focusSection()
+                Spacer()
+                RightSideMenu()
+                    .frame(width: 200)
+            }
+            .frame(maxHeight: .infinity)
+            .padding(screenMargin)
+
+            // Layer 2: Top & Bottom Bars (Dynamic visibility)
             VStack(spacing: 0) {
                 TopBarView(selectedCamera: $configManager.selectedCamera)
                     .focusSection()
-
-                HStack(spacing: 0) {
-                    LeftSideMenu(selectedOption: $configManager.selectedLeftOption)
-                        .frame(width: 200)
-                        .focusSection()
-                    Spacer()
-                }
-                .frame(maxHeight: .infinity)
+                
+                Spacer()
 
                 if !orbitManager.isEnabled {
                     BottomConfigurationCards(
@@ -328,68 +334,112 @@ struct LeftSideMenu: View {
     @Environment(OrbitManager.self) private var orbitManager
     @FocusState private var focusedButton: Int?
 
-    private let menuOptions = [
-        (title: "View 1", icon: "viewfinder"),
-        (title: "View 2", icon: "camera.viewfinder"),
-        (title: "Orbit", icon: "globe.desk")
-    ]
-
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
 
             // Buttons 1 & 2 — hidden while orbit is active
             if !orbitManager.isEnabled {
-                ForEach([1, 2], id: \.self) { option in
-                    Button {
-                        selectedOption = option
-                    } label: {
-                        VStack(spacing: 0) {
-                            Image(systemName: menuOptions[option - 1].icon)
-                                .font(.system(size: 24))
-                            Text(menuOptions[option - 1].title)
-                                .font(.caption)
-                        }
-                        .foregroundStyle(selectedOption == option ? Color.white : Color.gray)
-                        .frame(width: 160, height: 120)
-                        .background(selectedOption == option ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2))
-                        .clipShape(RoundedRectangle(cornerRadius: 15))
-                    }
-                    .buttonStyle(.card)
-                    .focused($focusedButton, equals: option)
-                    .transition(.opacity)
-                }
+                // View 1
+                SideMenuButton(
+                    isActive: selectedOption == 1,
+                    icon: selectedOption == 1 ? "sun.max.fill" : "sun.max",
+                    action: { selectedOption = 1 }
+                )
+                .focused($focusedButton, equals: 1)
+
+                // View 2
+                SideMenuButton(
+                    isActive: selectedOption == 2,
+                    icon: selectedOption == 2 ? "sun.haze.fill" : "sun.haze",
+                    action: { selectedOption = 2 }
+                )
+                .focused($focusedButton, equals: 2)
             }
 
-            // Orbit button — never focusable while orbit is active
-            Button {
-                selectedOption = 3
-                orbitManager.toggle()
-            } label: {
-                VStack(spacing: 0) {
-                    Image(systemName: menuOptions[2].icon)
-                        .font(.system(size: 24))
-                    Text(menuOptions[2].title)
-                        .font(.caption)
-                }
-                .foregroundStyle(orbitManager.isEnabled ? Color.white : (selectedOption == 3 ? Color.white : Color.gray))
-                .frame(width: 160, height: 120)
-                .background(orbitManager.isEnabled ? Color.accentColor.opacity(0.8) : (selectedOption == 3 ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.2)))
-                .clipShape(RoundedRectangle(cornerRadius: 15))
-            }
-            .buttonStyle(.card)
-            .focused($focusedButton, equals: 3)
-            .focusable(!orbitManager.isEnabled)
-
-            Spacer()
+            Spacer(minLength: 16)
         }
         .defaultFocus($focusedButton, 1)
         .animation(.easeInOut(duration: 0.25), value: orbitManager.isEnabled)
-        .onChange(of: orbitManager.isEnabled) { _, isOn in
-            // Orbit ON  → clear focus entirely so no card glows
-            // Orbit OFF → restore focus to button 1
-            focusedButton = isOn ? nil : 1
+    }
+}
+
+// MARK: - Right Side Menu (Orbit Indicator)
+struct RightSideMenu: View {
+    @Environment(OrbitManager.self) private var orbitManager
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            // Orbit Indicator (Visual only, not focusable)
+            ZStack {
+                // Glass Background
+                Circle()
+                    .fill(orbitManager.isEnabled ? Color.accentColor.opacity(0.6) : Color.white.opacity(0.08))
+                Circle()
+                    .fill(.ultraThinMaterial)
+                
+                // Icon
+                Image(systemName: orbitManager.isEnabled ? "rotate.3d.fill" : "rotate.3d")
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(Color.white)
+                    .opacity(orbitManager.isEnabled ? 1.0 : 0.6)
+            }
+            .frame(width: 80, height: 80)
+            .clipShape(Circle())
+            .overlay(
+                Circle()
+                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+            )
+            .animation(.easeInOut(duration: 0.25), value: orbitManager.isEnabled)
+            
+            // Phantom Spacer to match LeftSideMenu structure (2 items vs 1)
+            // This ensures the Orbit indicator aligns with the TOP button of the left menu.
+            Color.clear
+                .frame(width: 80, height: 80)
+            
+            Spacer()
         }
+    }
+}
+
+struct SideMenuButton: View {
+    let isActive: Bool
+    let icon: String
+    var isOrbit: Bool = false      // Deprecated/Unused parameter, kept for compatibility if needed but logic removed
+    var orbitEnabled: Bool = false // Deprecated/Unused parameter
+    let action: () -> Void
+    
+    @Environment(\.isFocused) private var isFocused
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 28, weight: .medium))
+                .foregroundStyle(isActive ? Color.white : Color.white.opacity(0.6))
+                .frame(width: 80, height: 80)
+                .background(
+                    Circle()
+                        .fill(isActive ? Color.white.opacity(0.15) : Color.white.opacity(0.08))
+                )
+                .background(
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                )
+                .clipShape(Circle())
+                .overlay(
+                    Circle()
+                        .stroke(
+                            isFocused ? Color.white.opacity(0.6) : Color.white.opacity(0.15),
+                            lineWidth: isFocused ? 2 : 1
+                        )
+                )
+                .scaleEffect(isFocused ? 1.15 : 1.0)
+                .shadow(color: isFocused ? Color.white.opacity(0.3) : Color.clear, radius: 12)
+                .animation(.easeInOut(duration: 0.2), value: isFocused)
+        }
+        .buttonStyle(.plain)
     }
 }
 
